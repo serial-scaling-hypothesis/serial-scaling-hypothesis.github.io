@@ -382,7 +382,7 @@
     For any given task, asking <em>&ldquo;is this serial?&rdquo;</em> changes what you try next. Some problems we currently throw feed&#8209;forward Transformers at are serial&#8209;hard in the precise sense of <a class="section-ref" href="#precisely">§&nbsp;3</a>, and no amount of scale is going to close the gap. Weighing a task's seriality against a model's serial depth opens a third move beyond architecture and hardware: <strong>if a task is too serial for the models we have, change the task.</strong>
   </p>
   <p>
-    Predicting the position of every particle in a room ten seconds from now is very serial &mdash; each collision depends on the one before it, and no known algorithm shortens the chain. But the <em>macrostates</em> of the same room &mdash; temperature, pressure, bulk flow &mdash; need not track particles at all; they live at a coarser abstraction the second law of thermodynamics was written for. Same physics, different level of description, radically different computational character. The particle-level task is beyond us. The macrostate task is routine.
+    Predicting the position of every particle in a room ten seconds from now is a serial problem: each collision depends on the one before it, and no known algorithm shortens the chain. But the <em>macrostates</em> of the same room &mdash; temperature, pressure, bulk flow &mdash; do not require tracking individual particles. Statistical mechanics describes them directly, at a coarser resolution where the prediction is no longer serial. Same physics; the choice of abstraction determines how serial the task is.
   </p>
 </section>
 
