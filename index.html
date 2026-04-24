@@ -190,7 +190,7 @@
     </div>
     <div class="list-block">
       <h4>Models (by inference-time depth)</h4>
-      <p><em>TC⁰ inference (one forward pass, fixed depth):</em> MLPs, feed&#8209;forward Transformers, state&#8209;space models like Mamba, <strong>diffusion models with a TC⁰ backbone</strong>&nbsp;&mdash; even when they take hundreds of denoising steps (see&nbsp;§&nbsp;5).</p>
+      <p><em>TC⁰ inference (one forward pass, fixed depth):</em> MLPs, feed&#8209;forward Transformers, state&#8209;space models like Mamba, <strong>diffusion models with a TC⁰ backbone</strong>&nbsp;&mdash; even when they take hundreds of denoising steps (see&nbsp;<a class="section-ref" href="#diffusion">§&nbsp;5</a>).</p>
       <p><em>Potentially beyond TC⁰ (inference time grows with problem):</em> RNNs, looped transformers, chain&#8209;of&#8209;thought Transformers.</p>
     </div>
   </div>
@@ -367,7 +367,7 @@
 
   <h3>Problem framing.</h3>
   <p>
-    For any given task, asking <em>&ldquo;is this serial?&rdquo;</em> changes what you try next. Some problems we currently throw feed&#8209;forward Transformers at are serial&#8209;hard in the precise sense of §&nbsp;3, and no amount of scale is going to close the gap. Sometimes a reformulation is possible; sometimes a different architecture is needed; sometimes the honest answer is that the task needs sequential computation at inference time.
+    For any given task, asking <em>&ldquo;is this serial?&rdquo;</em> changes what you try next. Some problems we currently throw feed&#8209;forward Transformers at are serial&#8209;hard in the precise sense of <a class="section-ref" href="#precisely">§&nbsp;3</a>, and no amount of scale is going to close the gap. Sometimes a reformulation is possible; sometimes a different architecture is needed; sometimes the honest answer is that the task needs sequential computation at inference time.
   </p>
 </section>
 

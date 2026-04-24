@@ -183,6 +183,23 @@ a:hover {
   text-decoration-color: var(--accent);
 }
 
+/* Internal section cross-references ("§ 3", "§ 5", …) — treated as
+   academic callouts: no underline, accent color, dotted underline only
+   on hover. They should read as part of the sentence, not as a
+   hyperlink jammed in. */
+a.section-ref {
+  color: var(--accent-ink);
+  text-decoration: none;
+  font-variant-numeric: lining-nums;
+  white-space: nowrap;
+  padding-bottom: 0.05em;
+  border-bottom: 1px dotted var(--rule-strong);
+}
+a.section-ref:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* Lead paragraph — slightly larger, under subtitle */
 .lead {
   font-size: var(--fs-lead);
