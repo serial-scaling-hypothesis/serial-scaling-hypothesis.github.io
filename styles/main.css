@@ -688,6 +688,91 @@ label.margin-toggle.sn-number:hover {
   color: var(--paper);
 }
 
+/* Table of contents — lives just under the hero, bookish. */
+.toc {
+  margin: var(--s-5) 0 0;
+  padding: var(--s-3) 0;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.toc-label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-smcp);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin: 0 0 var(--s-2);
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: none;
+}
+
+.toc-list li {
+  margin: 0;
+  padding: 0;
+}
+
+.toc-list li::before {
+  content: none;
+}
+
+.toc-list a {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: var(--s-2);
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink);
+  align-items: baseline;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.toc-list li:first-child a {
+  border-top: none;
+}
+
+.toc-list a:hover {
+  color: var(--accent);
+}
+
+.toc-list a:hover .toc-num {
+  color: var(--accent);
+}
+
+.toc-num {
+  font-size: var(--fs-small);
+  letter-spacing: var(--tr-smcp);
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-variant-numeric: lining-nums;
+  font-weight: 600;
+  transition: color 120ms ease;
+}
+
+.toc-title {
+  font-size: var(--fs-body);
+  font-family: var(--font-serif);
+  font-variation-settings: "opsz" 14;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+
+@media (max-width: 40em) {
+  .toc-list a {
+    grid-template-columns: 3rem 1fr;
+    gap: var(--s-1);
+  }
+  .toc-title {
+    font-size: var(--fs-small);
+  }
+}
+
 /* Same resource row inside the hero — a touch smaller, spaced a bit
    further down from the byline, so it doesn't compete with the title. */
 .hero-resources {
