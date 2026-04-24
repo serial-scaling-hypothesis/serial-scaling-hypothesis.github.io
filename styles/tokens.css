@@ -1,0 +1,78 @@
+/* Typography: self-hosted Fraunces variable */
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/Fraunces-VariableFont.woff2') format('woff2-variations'),
+       url('../fonts/Fraunces-VariableFont.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../fonts/Fraunces-Italic-VariableFont.woff2') format('woff2-variations'),
+       url('../fonts/Fraunces-Italic-VariableFont.woff2') format('woff2');
+}
+
+:root {
+  /* Font family */
+  --font-serif: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular,
+               Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --fs-micro:   0.8125rem;  /* 13px */
+  --fs-small:   0.9375rem;  /* 15px */
+  --fs-body:    1.1875rem;  /* 19px */
+  --fs-lead:    1.375rem;   /* 22px */
+  --fs-h4:      1.25rem;    /* 20px */
+  --fs-h3:      1.625rem;   /* 26px */
+  --fs-h2:      2.25rem;    /* 36px */
+  --fs-h1:      clamp(2.75rem, 6vw, 4.25rem);
+  --fs-epigraph: 1rem;      /* 16px */
+  --fs-drop:    4.25rem;    /* 68px, drop cap */
+
+  /* Line heights */
+  --lh-tight:   1.08;
+  --lh-snug:    1.25;
+  --lh-body:    1.55;
+  --lh-caption: 1.4;
+
+  /* Letter spacing */
+  --tr-smcp:    0.08em;
+  --tr-display: -0.012em;
+  --tr-body:    0;
+
+  /* Colors — warm, bookish paper */
+  --ink:         #1a1612;
+  --ink-soft:    #5a524a;
+  --ink-faint:   #8c8275;
+  --paper:       #f7f4ed;
+  --paper-warm:  #efeadd;
+  --rule:        #d8d2c5;
+  --rule-strong: #8c8275;
+  --accent:      #8b1a1a;
+  --accent-ink:  #5a1111;
+
+  /* Measure (column width) */
+  --measure:         34rem;   /* body column, ~65ch */
+  --measure-wide:    44rem;   /* figures + pull quotes */
+  --sidenote:        14rem;
+  --sidenote-gap:    2rem;
+  --article-max:     calc(var(--measure) + var(--sidenote-gap) + var(--sidenote) + 2rem);
+
+  /* Spacing scale */
+  --s-0:  0.25rem;
+  --s-1:  0.5rem;
+  --s-2:  1rem;
+  --s-3:  1.5rem;
+  --s-4:  2.25rem;
+  --s-5:  3.5rem;
+  --s-6:  5.5rem;
+  --s-7:  8rem;
+  --s-8:  12rem;
+}

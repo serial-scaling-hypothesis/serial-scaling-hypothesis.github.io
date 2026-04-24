@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Serial Scaling Hypothesis</title>
+<meta name="description" content="A hypothesis about why some ML problems refuse to speed up with more parallel compute — and why diffusion models, despite appearances, are not serial reasoners." />
+<meta property="og:title" content="The Serial Scaling Hypothesis" />
+<meta property="og:description" content="Why some problems refuse every GPU you throw at them." />
+<meta property="og:type" content="article" />
+
+<link rel="stylesheet" href="styles/reset.css?v=2" />
+<link rel="stylesheet" href="styles/tokens.css?v=2" />
+<link rel="stylesheet" href="styles/main.css?v=2" />
+
+<!-- KaTeX -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\\\[',right:'\\\\]',display:true},{left:'\\\\(',right:'\\\\)',display:false}], throwOnError:false});"></script>
+</head>
+
+<body>
+
+<div class="page-frame"></div>
+
+<article class="article">
+
+<!-- =========================================================
+     HERO
+     ========================================================= -->
+<header class="hero">
+  <p class="kicker">A paper companion · Liu · Preechakul · Kuwaranancharoen · Bai</p>
+  <h1 class="title">The Serial Scaling&nbsp;Hypothesis</h1>
+  <aside class="tldr" aria-label="Summary">
+    <span class="tldr-label">TL;DR</span>
+    <p>Complexity theory 🤝 deep learning. Under serial tasks, not all FLOPs are equal. Solving tasks efficiently requires a certain number of steps — a fact that explains a lot of observed deep-learning bottlenecks, including why diffusion models don't scale step-wise.</p>
+  </aside>
+
+  <p class="byline">
+    <span class="authors">Yuxi&nbsp;Liu<sup>∗</sup>, Konpat&nbsp;Preechakul<sup>∗</sup>, Kananart&nbsp;Kuwaranancharoen<sup>†</sup>, Yutong&nbsp;Bai</span>
+    <span class="affiliation">UC Berkeley · <sup>†</sup>Independent researcher · <sup>∗</sup>Equal contribution</span>
+    <span class="date">April 2026</span>
+  </p>
+
+  <div class="resources hero-resources">
+    <a href="https://arxiv.org/abs/2507.12549" rel="noopener" target="_blank">Read&nbsp;the&nbsp;paper</a>
+    <a href="assets/serial-scaling-hypothesis-poster.pdf" rel="noopener" target="_blank">Download&nbsp;the&nbsp;poster</a>
+    <a href="#bibtex">BibTeX</a>
+  </div>
+</header>
+
+<!-- =========================================================
+     § 1 — The hypothesis
+     ========================================================= -->
+<section class="section" id="hypothesis">
+  <span class="section-label">§ 1 · The hypothesis</span>
+  <h2 class="section-title">A pattern hiding in plain sight.</h2>
+
+  <p class="drop-cap">
+    Machine learning has spent a decade making parallel compute cheaper. GPUs got wider. Transformers replaced RNNs because they were embarrassingly parallel. Scaling laws told us to add more chips and more tokens, and for a while, everything got better.
+  </p>
+
+  <p>
+    And yet reinforcement learning plateaued until model-based methods added planning. Language models plateaued on hard math until chain of thought added intermediate steps. Depth beat width on benchmark after benchmark. Each time the fix looked different; each time, it was a way of buying more <em>sequential</em> computation.
+  </p>
+
+  <p>
+    At the same time, complexity theory has for decades told a simple story: some problems are inherently serial. No amount of parallel compute shortens the longest chain of dependent steps they&nbsp;require.<label for="sn-exp" class="margin-toggle sn-number">1</label><input type="checkbox" id="sn-exp" class="margin-toggle"/><span class="sidenote"><span class="sn-label">1</span>In principle, you can trade depth for <em>exponentially</em> wider circuits &mdash; but &ldquo;exponentially more&rdquo; is another word for &ldquo;intractable,&rdquo; so the escape hatch is theoretical.</span>
+  </p>
+
+  <p>
+    The two observations fit together. Machine-learning problems are not fundamentally different in kind from the problems complexity theory has studied for half a century. If the rules bind them, they bind us. That is what this paper argues.
+  </p>
+
+  <div class="pull">
+    <strong>The Serial Scaling Hypothesis.</strong> Problems that involve reasoning, decision making, and dynamic systems need more <strong>serial</strong> computation, not just <strong>parallel</strong> ones.
+  </div>
+</section>
+
+<!-- =========================================================
+     § 2 — What it does and why it's needed
+     ========================================================= -->
+<section class="section" id="stakes">
+  <span class="section-label">§ 2 · Stakes</span>
+  <h2 class="section-title">What the hypothesis does, and why it is needed.</h2>
+
+  <h3>What does it do?</h3>
+
+  <p>Two things.</p>
+
+  <p>
+    First, <strong>it names a pattern the field has already navigated, over and over.</strong> Almost every time modern machine learning cleared a bottleneck — deep nets over SVMs, chain of thought over one-shot answers, MCTS over raw policy nets — the move was, in hindsight, to buy more serial computation. The hypothesis makes that rhyme explicit and invites us to use it as a design lens for what to try next.
+  </p>
+
+  <p>
+    Second, <strong>it connects deep learning to a body of theory we have mostly been able to ignore.</strong> Complexity theory has known for half a century that some problems resist parallelization (Greenlaw, Hoover &amp; Ruzzo,&nbsp;1995). If the hypothesis is right, that theory has practical things to say about architecture and scaling — it stops being a separate subject.
+  </p>
+
+  <h3>Why is it needed now?</h3>
+
+  <p>
+    Our instincts as a field have been trained on the parallel regime.
+  </p>
+
+  <ul>
+    <li>In 2017 we mostly stopped training RNNs (serial) and moved to Transformers (parallel), because Transformers scaled.</li>
+    <li>The 2020-era scaling laws measure compute as an undifferentiated aggregate. They do not distinguish serial from parallel FLOPs.</li>
+    <li>Test-time scaling, as it is discussed today, often does not either.</li>
+    <li>Diffusion models — one of the main candidates for reasoning under a generative framing — <em>look</em> serial but, we will show, are not.</li>
+  </ul>
+
+  <p>
+    The parallel-is-everything mindset is baked into our tools, our intuitions, and our theory of scaling. <strong>Not all FLOPs are equal — at least not for serial problems.</strong> On a serial problem, a serial FLOP can buy depth that no amount of parallel FLOPs will; on a parallel problem, the two are fungible. The ask of this paper is modest: treat that distinction as first-order, rather than as a rounding error on total compute.
+  </p>
+</section>
+
+<!-- =========================================================
+     § 3 — Serial and parallel, precisely
+     ========================================================= -->
+<section class="section" id="precisely">
+  <span class="section-label">§ 3 · Definitions</span>
+  <h2 class="section-title">Serial and parallel.</h2>
+
+  <blockquote class="epigraph">
+    Nine women cannot make a baby in one month.
+    <cite>— after Fred Brooks, <em>The Mythical Man-Month</em> (1975)</cite>
+  </blockquote>
+
+  <h3>One ball, five balls.</h3>
+
+  <p>
+    Take a single ball bouncing inside a box. Where is it after ten seconds? You could simulate the bounces one at a time — but you could also just compute it: reflect the trajectory off each wall using a closed-form expression, and jump ahead. One ball is essentially a parallel problem. Any horizon, any processor count, roughly one lookup.
+  </p>
+
+  <p>Now put five balls in the box.</p>
+
+  <p>
+    Each collision depends on the state after the previous collision. A pair of balls that collide at step 47 only collide because some earlier collision put them on that trajectory. You cannot compute the state at step 100 without knowing the state at step 99, and you cannot know step 99 without step 98, and so on back to step 1. The problem is <em>inherently serial</em>. No amount of parallel compute shortens the chain.
+  </p>
+
+  <figure class="fig fig--wide" id="fig-balls">
+    <img src="assets/figures/1v5-balls.jpg" alt="Left panel: a single red ball in a square box, and below it the same ball's trajectory — a short zigzag of a few wall bounces. Right panel: five balls of different colors inside the same box, and below, their trajectories over time — a tangle of multi-colored lines criss-crossing, with many collisions." />
+    <figcaption>
+      <span class="fig-num">Fig. 1</span>Left: one ball's trajectory is a short list of reflections. Right: five balls produce a tangled graph of collision dependencies. Same box, same physics &mdash; different computational character.
+      <span class="credit">Figure courtesy of Jorge Diaz Chao.</span>
+    </figcaption>
+  </figure>
+
+  <figure class="fig fig--wide" id="fig-ball-video">
+    <video class="motion-required" src="assets/videos/ball-collision.mp4" autoplay muted loop playsinline aria-label="Simulation loop of three balls bouncing and colliding inside a closed box."></video>
+    <figcaption>
+      <span class="fig-num">Fig. 2</span>Three balls in motion. Even a handful of freely moving objects becomes genuinely hard to predict after a few seconds: every collision re&#8209;routes the entire future trajectory, and the state at any later time is the endpoint of a chain of dependent events.
+    </figcaption>
+  </figure>
+
+  <h3>Complexity theory, briefly.</h3>
+
+  <p>
+    Complexity theory has a precise language for this. A problem is in&nbsp;<strong>TC</strong> (the parallelizable class) if it can be solved by a circuit with polynomial&nbsp;width<label for="sn-polywidth" class="margin-toggle sn-number">2</label><input type="checkbox" id="sn-polywidth" class="margin-toggle"/><span class="sidenote"><span class="sn-label">2</span>The &ldquo;polynomial width&rdquo; qualifier is what makes this a definition of <em>efficient</em> parallelism. If any width were permitted, depth would barely matter: the Universal Approximation Theorem shows that a shallow network with sufficiently many units can represent almost anything. But &ldquo;sufficiently many&rdquo; is typically exponential, and exponential is intractable. Polynomial width is the boundary between &ldquo;can&rdquo; and &ldquo;can afford.&rdquo;</span> and poly&#8209;logarithmic depth. <strong>TC⁰</strong> is the subclass solvable with <em>constant</em> depth&nbsp;&mdash; fixed&#8209;depth, polynomial&#8209;width circuits. Problems outside TC, and problems outside TC⁰ but inside TC, are serial in a precise, provable&nbsp;sense<label for="sn-tcp" class="margin-toggle sn-number">3</label><input type="checkbox" id="sn-tcp" class="margin-toggle"/><span class="sidenote"><span class="sn-label">3</span>Like most of complexity theory, the whole distinction rests on a conjecture we cannot yet prove: <strong>TC ⊊ P</strong>&nbsp;&mdash; not every polynomial&#8209;time problem is parallelizable. If TC&nbsp;=&nbsp;P were ever shown, every problem in P would admit a poly&#8209;log&#8209;depth parallel solution, the serial/parallel distinction would collapse inside P, and our hypothesis would lose its footing. Essentially everyone in the field believes TC&nbsp;⊊&nbsp;P (Greenlaw, Hoover &amp; Ruzzo&nbsp;1995), but the reader should know the foundation is a belief, not a theorem&nbsp;&mdash; of the same species as P&nbsp;≠&nbsp;NP.</span>: any efficient solution executes a chain of dependent steps that grows with the problem&nbsp;size.<label for="sn-ci" class="margin-toggle sn-number">4</label><input type="checkbox" id="sn-ci" class="margin-toggle"/><span class="sidenote"><span class="sn-label">4</span>Stephen Wolfram popularized a useful name for this: <strong>computational irreducibility.</strong> Some computations have no shortcuts&nbsp;&mdash; running them is the only way to learn what they produce. One might reasonably object that the whole point of machine learning is to find shortcuts: learning a function is, in large part, discovering that a problem is more reducible than a naive algorithm would suggest. That's right, and it explains a great deal of the field's success. But reducibility is not infinite. For any given task, we exploit the shortcuts that exist; what remains is irreducible by definition. How much of a task's computation is irreducible is precisely what tells us how much <em>serial</em> compute we should be prepared to spend on it at inference time.</span>
+  </p>
+
+  <p>
+    An important bridge: the computational class of a <em>problem</em> has a natural analog for <em>models</em>. A model that always returns its answer in a fixed number of steps&nbsp;&mdash; one forward pass&nbsp;&mdash; is, in effect, a fixed&#8209;depth circuit. That model can solve only problems in TC⁰, no matter how wide it is. A model that runs for a number of steps that grows with the problem (a genuine serial chain, like an RNN, or an autoregressive Transformer generating $N$&nbsp;tokens) <em>may</em> be able to solve problems beyond TC⁰. &ldquo;May&rdquo; because the potential is there; whether a given model actually uses it is a separate question.
+  </p>
+
+  <h3>Two common confusions worth naming.</h3>
+
+  <p>
+    <strong>Transformers.</strong> A Transformer's single forward pass is TC⁰. This surprises people. The serial&#8209;looking behavior you see with a language model comes from <em>autoregressive decoding</em>&nbsp;&mdash; generating one token at a time, $O(N)$ forward passes deep&nbsp;&mdash; not from the architecture itself. The next token is always a fixed&#8209;depth computation; the sentence is not. The Transformer has the <em>potential</em> to solve problems beyond TC⁰ this way, which is why chain&#8209;of&#8209;thought&nbsp;matters.<label for="sn-txf" class="margin-toggle sn-number">5</label><input type="checkbox" id="sn-txf" class="margin-toggle"/><span class="sidenote"><span class="sn-label">5</span>Potential, not guarantee. Whether Transformers plus autoregression can solve every P&#8209;complete problem is a separate open question, and not one we take a position on here.</span>
+  </p>
+
+  <p>
+    <strong>Universal approximation.</strong> It is easy to hear &ldquo;three&#8209;layer MLPs are universal approximators&rdquo; and conclude that depth does not matter. The universal approximation theorem is about existence, not efficiency. Matching a deep network with a shallow one typically requires <em>exponentially</em> more width. In practice that exponent makes the shallow solution unusable. The observation that deeper networks work better than wider ones, at matched parameter counts, is an empirical discovery of the field (not a proven fact for, say, image classification); the complexity&#8209;theory intuition is that shallow networks cannot compactly represent the compositions that deep ones can.
+  </p>
+
+  <h3>The map.</h3>
+
+  <figure class="fig fig--wide" id="fig-venn">
+    <img src="assets/figures/venn-complexity.png" alt="Nested-region diagram showing the complexity classes TC⁰ ⊂ TC ⊂ P ⊂ outside-P, with example problems placed within each region." />
+    <figcaption>
+      <span class="fig-num">Fig. 3</span>The complexity&#8209;class landscape. TC⁰ is the fixed&#8209;depth core; TC allows poly&#8209;log depth; P is anything computable in polynomial time. Under the conjecture TC&nbsp;⊊&nbsp;P, not every polynomial&#8209;time problem is parallelizable.
+    </figcaption>
+  </figure>
+
+  <div class="two-lists">
+    <div class="list-block">
+      <h4>Problems (tasks)</h4>
+      <p><em>In TC⁰, parallelizable:</em> many perceptual tasks, low&#8209;$N$ arithmetic, template pattern matching.</p>
+      <p><em>Proven outside TC⁰ in their general cases, inherently serial:</em> cellular&nbsp;automata<label for="sn-ca" class="margin-toggle sn-number">6</label><input type="checkbox" id="sn-ca" class="margin-toggle"/><span class="sidenote"><span class="sn-label">6</span><strong>Cellular automata.</strong> A grid where each cell's state at the next tick is a simple local function of its current neighbours. The Wolfram rules &ldquo;110&rdquo; and &ldquo;30&rdquo; are one-dimensional examples; iterating them from a short row produces the striped patterns below. Rule&nbsp;110 is Turing&#8209;complete: predicting its long&#8209;run state is as hard as running an arbitrary computation. <img class="sn-figure" src="assets/figures/cellular-automaton.png" alt="A vertical strip showing the evolution of a 1D cellular automaton: each row is one tick, cells are black or white, and the pattern develops an intricate structure over many rows." /></span> (Rule&nbsp;110, Rule&nbsp;30; Fredkin &amp; Toffoli&nbsp;1982), many&#8209;body mechanics (Woods &amp; Neary&nbsp;2009, the billiard&#8209;ball computer), sequential decision problems, hard mathematical reasoning.</p>
+    </div>
+    <div class="list-block">
+      <h4>Models (by inference-time depth)</h4>
+      <p><em>TC⁰ inference (one forward pass, fixed depth):</em> MLPs, feed&#8209;forward Transformers, state&#8209;space models like Mamba, <strong>diffusion models with a TC⁰ backbone</strong>&nbsp;&mdash; even when they take hundreds of denoising steps (see&nbsp;§&nbsp;5).</p>
+      <p><em>Potentially beyond TC⁰ (inference time grows with problem):</em> RNNs, looped transformers, chain&#8209;of&#8209;thought Transformers.</p>
+    </div>
+  </div>
+
+  <p>
+    These two lists interact directly. A model's inference&#8209;time depth upper&#8209;bounds the class of problems it can solve efficiently. A fixed&#8209;depth model cannot do better than TC⁰, no matter how wide you make it.
+  </p>
+</section>
+
+<!-- =========================================================
+     § 4 — History of serial unblocks
+     ========================================================= -->
+<section class="section" id="history">
+  <span class="section-label">§ 4 · History</span>
+  <h2 class="section-title">Many of ML's bottlenecks have been cleared by adding serial compute.</h2>
+
+  <p>
+    If the hypothesis is right, we should expect the pattern to show up repeatedly across the field's history. It does.
+  </p>
+
+  <h3>Depth itself.</h3>
+  <p>
+    A three&#8209;layer MLP is a universal approximator&nbsp;&mdash; in theory. In practice, ImageNet didn't fall to a wide three&#8209;layer net; it fell to a deep one. Every subsequent breakthrough (ResNet, Transformer language models, diffusion U&#8209;Nets) went deeper, not wider. No one has <em>proven</em> depth is necessary for image classification&nbsp;&mdash; the field discovered this empirically, one benchmark at a time&nbsp;&mdash; but the complexity&#8209;theory intuition is that shallow networks have to pay an exponential price in width to match what deep ones compose naturally.
+  </p>
+
+  <h3>Chain of thought.</h3>
+  <p>
+    A fixed Transformer's single forward pass is TC⁰&nbsp;&mdash; a constant&#8209;depth circuit. Adding CoT tokens lets it run more serial steps, one per token, and provably expands the class of problems it can solve beyond&nbsp;TC⁰.<label for="sn-cot" class="margin-toggle sn-number">7</label><input type="checkbox" id="sn-cot" class="margin-toggle"/><span class="sidenote"><span class="sn-label">7</span>The key references: <strong>Wei&nbsp;et&nbsp;al. (2022),</strong> <em><a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Chain&#8209;of&#8209;Thought Prompting Elicits Reasoning in Large Language Models</a></em> (NeurIPS); <strong>Li&nbsp;et&nbsp;al. (2024),</strong> <em><a href="https://arxiv.org/abs/2402.12875" target="_blank" rel="noopener">Chain of Thought Empowers Transformers to Solve Inherently Serial Problems</a></em> (ICLR); <strong>Merrill &amp; Sabharwal (2024),</strong> <em><a href="https://arxiv.org/abs/2310.07923" target="_blank" rel="noopener">The Expressive Power of Transformers with Chain of Thought</a></em> (ICLR). The first is the canonical CoT paper; the latter two formalize why it works.</span> The practical version: more reasoning tokens, better math, and sequential scaling beats parallel majority&#8209;voting at matched token&nbsp;budget.<label for="sn-aggarwal" class="margin-toggle sn-number">8</label><input type="checkbox" id="sn-aggarwal" class="margin-toggle"/><span class="sidenote"><span class="sn-label">8</span><strong>Aggarwal &amp; Welleck (2025),</strong> <em><a href="https://arxiv.org/abs/2503.04697" target="_blank" rel="noopener">L1: Controlling How Long A Reasoning Model Thinks With Reinforcement Learning</a></em>. Shows that, at a matched token budget, letting the model think sequentially outperforms drawing many short samples and majority&#8209;voting.</span>
+  </p>
+
+  <h3>Looped transformers.</h3>
+  <p>
+    Same idea, cleaner: just run the network more times. Depth by repetition, without retraining from scratch.
+  </p>
+
+  <h3>Model-based RL.</h3>
+  <p>
+    AlphaGo's edge over policy&#8209;only baselines was MCTS&nbsp;&mdash; serial planning. Every unit of additional tree search adds a serial step of lookahead. Policy&#8209;only reinforcement learning plateaus without it.
+  </p>
+
+  <h3>Depth over width in RL.</h3>
+  <p>
+    Wang&nbsp;et&nbsp;al.&nbsp;(2025)<label for="sn-wang" class="margin-toggle sn-number">9</label><input type="checkbox" id="sn-wang" class="margin-toggle"/><span class="sidenote"><span class="sn-label">9</span><strong>Wang, Javali, Bortkiewicz, Trzciński &amp; Eysenbach (2025),</strong> <em><a href="https://arxiv.org/abs/2503.14858" target="_blank" rel="noopener">1000 Layer Networks for Self&#8209;Supervised RL: Scaling Depth Can Enable New Goal&#8209;Reaching Capabilities</a></em> (NeurIPS 2025 Best Paper).</span> trained 1000&#8209;layer networks for self&#8209;supervised RL and showed <em>depth</em>&nbsp;&mdash; not width&nbsp;&mdash; unlocks goal&#8209;reaching behaviors. A 2× deeper network beat a 16× wider one on Humanoid, the task with the largest observation and action spaces.
+  </p>
+
+  <p>
+    In each of these cases, a ceiling that looked like a general architectural or data bottleneck turned out, on reflection, to be a <em>serial</em> ceiling, and the fix was more serial compute. Not every ML progress story fits this mold; but enough of them do to make the pattern worth naming. Which brings us to the one serial&#8209;<em>looking</em> thing the field has not yet unblocked.
+  </p>
+</section>
+
+<!-- =========================================================
+     § 5 — Diffusion models
+     ========================================================= -->
+<section class="section" id="diffusion">
+  <span class="section-label">§ 5 · The main result</span>
+  <h2 class="section-title">Why diffusion models are not serial reasoners.</h2>
+
+  <p>
+    Diffusion models look like they should be serial reasoners.
+  </p>
+
+  <p>
+    They take hundreds of steps. They refine their output gradually. They look, superficially, like the model is thinking. If you fed a diffusion model a sudoku puzzle and asked it to denoise into a solution, you might expect each step to close in on a consistent answer. And in fact a standard diffusion model <em>will</em> produce convincing&#8209;looking sudoku solutions&nbsp;&mdash; the grids fill in, the numbers look plausible. They just tend not to be valid. Autoregressive approaches&nbsp;&mdash; including diffusion variants that fill the most&#8209;confident cells first, which are effectively a more serial use of the same network&nbsp;&mdash; solve the puzzles reliably. The serial&#8209;looking denoising chain, on its own, does not deliver the serial reasoning the task requires.
+  </p>
+
+  <figure class="fig fig--wide" id="fig-sudoku">
+    <img src="assets/figures/sudoku-comparison.png" alt="Two rows of sudoku grids showing the denoising progression for two different approaches. Top row (diffusion, labelled with a red cross): the final grid has invalid entries. Bottom row (autoregressive, labelled with a checkmark): the final grid is a valid sudoku solution." />
+    <figcaption>
+      <span class="fig-num">Fig. 4</span>Denoising a sudoku puzzle. <span class="mark-fail">✗</span> Standard diffusion produces plausible&#8209;looking but invalid solutions. <span class="mark-pass">✓</span> An autoregressive strategy&nbsp;&mdash; including diffusion variants that fill the most&#8209;confident cells first&nbsp;&mdash; resolves the grid correctly. Adapted from Wewer&nbsp;et&nbsp;al. (2025).<label for="sn-wewer" class="margin-toggle sn-number">10</label><input type="checkbox" id="sn-wewer" class="margin-toggle"/><span class="sidenote"><span class="sn-label">10</span><strong>Wewer, Pogodzinski, Schiele &amp; Lenssen (2025),</strong> <em>Spatial Reasoning with Denoising Models</em> (ICML). Shows that order of generation matters for discrete diffusion on combinatorial puzzles; source of the figure. <a href="https://arxiv.org/abs/2502.21075" target="_blank" rel="noopener">arxiv.org/abs/2502.21075</a></span>
+    </figcaption>
+  </figure>
+
+  <p>What's going on? Here is the claim.</p>
+
+  <div class="theorem">
+    <span class="theorem-label">Theorem · informal</span>
+    <p>If a problem can be solved by a diffusion model with a&nbsp;TC⁰ backbone with high probability, even with infinitely many denoising steps, then the problem is already in&nbsp;TC⁰.</p>
+  </div>
+
+  <p>
+    Put plainly: adding more denoising steps does not let a diffusion model escape the complexity class of its backbone. A fixed&#8209;depth network run for a thousand denoising steps still lives inside&nbsp;TC⁰&nbsp;&mdash; the same class as the backbone itself. More steps can, and do, help <em>within</em> that class&nbsp;&mdash; better images, lower perplexity, tighter distributional fit. What they cannot do is unlock computations the backbone's class excludes. The constant in front of&nbsp;TC⁰ can change with&nbsp;$T$; the class boundary does not move.
+  </p>
+
+  <p>This is surprising. Where does the apparent serial depth go?</p>
+
+  <p>
+    The answer is that diffusion's serial chain is shallow in a precise sense. Li &amp; Yan&nbsp;(2024)<label for="sn-liyan" class="margin-toggle sn-number">11</label><input type="checkbox" id="sn-liyan" class="margin-toggle"/><span class="sidenote"><span class="sn-label">11</span><strong>Li &amp; Yan (2024),</strong> <em><a href="https://arxiv.org/abs/2409.18959" target="_blank" rel="noopener">$O(d/T)$ convergence theory for diffusion probabilistic models under minimal assumptions</a></em>. The bound is TV&thinsp;$\le\,c\bigl(d_\varepsilon\,(\log T)^3 / T + \varepsilon_{\mathrm{score}}\sqrt{\log T}\bigr)$ (Thm. 1), with $d_\varepsilon$ the $\varepsilon$&#8209;discrete intrinsic dimension.</span> showed that the total variation between the $T$&#8209;step denoising distribution and the true distribution falls as $O(D/T)$, where $D$ is the intrinsic dimension of the data. That means once $T = O(D/\varepsilon)$, the distribution is already within $\varepsilon$ of perfect. Beyond that, additional steps are noise&nbsp;&mdash; the score function is smooth enough in time that a bounded number of steps always suffice.
+  </p>
+
+  <p style="text-align:center; margin: var(--s-3) 0;">
+    $$ \mathrm{TV}(p_T,\, p_\infty) \;=\; O\!\left(\frac{D}{T}\right) \qquad\Rightarrow\qquad T \;=\; O\!\left(\frac{D}{\varepsilon}\right) $$
+  </p>
+
+  <figure class="fig" id="fig-liyan">
+    <img src="assets/figures/li-yan-bound.png" alt="A reproduction of the Li & Yan (2024) convergence result. The plot shows total variation distance TV(p_T, p_∞) on the vertical axis versus denoising steps T on the horizontal axis. A monotonically decreasing curve falls sharply and then flattens. A horizontal red line marks a fixed bounded error level ε; the curve crosses this line at a finite T = O(1), indicated by a red dashed vertical marker." />
+    <figcaption>
+      <span class="fig-num">Fig. 5</span>The Li &amp; Yan&nbsp;(2024) convergence curve. Total variation between the $T$&#8209;step diffusion sample and the target falls as $O(D/T)$; once the curve crosses the bounded error level $\varepsilon$&nbsp;&mdash; at $T = O(D/\varepsilon)$&nbsp;&mdash; additional denoising steps buy almost nothing. For a fixed task, $D$ and $\varepsilon$ are constants, so this crossover is at $T = O(1)$.
+    </figcaption>
+  </figure>
+
+  <p>
+    This gives us a diffusion model that, with enough steps, is a bounded&#8209;error TC⁰ circuit: a TC⁰ backbone, run a constant number of effective times, with an&nbsp;$\varepsilon$ chance of being wrong. A standard result in complexity theory says we can then <em>derandomize</em> such a circuit&nbsp;&mdash; run it many times in parallel and majority&#8209;vote&nbsp;&mdash; and the whole thing collapses into ordinary, deterministic&nbsp;TC⁰.
+  </p>
+
+  <div class="pull">
+    <strong>Derandomization + bounded error = TC⁰.</strong><br />
+    The infinite denoising chain turns out to be, at best, a fixed&#8209;depth circuit in disguise.
+  </div>
+
+  <h3>What this predicts.</h3>
+
+  <p>
+    It predicts things we already see. Image generation plateaus past a few hundred steps (Nichol &amp; Dhariwal&nbsp;2021). Depth estimation is nearly identical at 5 and 100 steps (Ravishankar&nbsp;et&nbsp;al.&nbsp;2024). Language&#8209;diffusion perplexity barely moves from 32 to 1024 steps (Austin&nbsp;et&nbsp;al.&nbsp;2021). Distillation works&nbsp;&mdash; 1&ndash;4 step diffusion samples almost as well as the full chain (Salimans &amp; Ho&nbsp;2022; Yin&nbsp;et&nbsp;al.&nbsp;2024)&nbsp;&mdash; because the useful depth was always constant.
+  </p>
+
+  <p>
+    Diffusion is an excellent <em>parallelizer</em> of a problem that already fits in a parallel class. It is not a shortcut to serial reasoning.
+  </p>
+
+  <details class="proof">
+    <summary>For the theorists · proof sketch</summary>
+    <div class="proof-body">
+      <p>
+        <em>Proof sketch.</em> Suppose a diffusion model $f_\theta$ with TC⁰ backbone solves the problem with high probability as $T \to \infty$.
+      </p>
+      <p>Li &amp; Yan (2024, Thm.&nbsp;1) give</p>
+      <p>$$ \mathrm{TV}(\rho_0,\,\rho_{\mathrm{SMLD},0}) \;\le\; c\!\left( \tfrac{d_\varepsilon(\mathrm{supp}\,\rho_0)}{T}(\log T)^3 + \varepsilon_{\mathrm{score}}\sqrt{\log T} \right). $$</p>
+      <p>
+        Fix $\varepsilon$. There exists $T^\star = O(D/\varepsilon)$ such that the $T^\star$&#8209;step diffusion samples within $\varepsilon$ total variation of the target. $T^\star$ depends only on $D$ and $\varepsilon$&nbsp;&mdash; both problem constants, not a compute budget.
+      </p>
+      <p>
+        Unrolling $T^\star$ denoising steps stacks $T^\star$ copies of the TC⁰ backbone, yielding a circuit of depth $T^\star \cdot d_{\mathrm{bb}}$, still constant. The chain is a randomized TC⁰ circuit with bounded error.
+      </p>
+      <p>
+        <em>Derandomization.</em> Replicate the network $k(n)$ times with independent seeds $s_1, \ldots, s_{k(n)}$ and take the majority vote. By Hoeffding's inequality, the probability of error is $\le e^{-2k(n)(p - 1/2)^2}$, driven exponentially to zero by polynomial $k$. Majority&#8209;of&#8209;TC⁰&#8209;in&#8209;parallel is TC⁰ (Hajnal&nbsp;et&nbsp;al.&nbsp;1993, Prp.&nbsp;4.2). $\blacksquare$
+      </p>
+    </div>
+  </details>
+
+  <h3>Escape hatches.</h3>
+
+  <p>
+    The theorem has two real limitations, and both point at what a serial&#8209;compute&#8209;scalable generative model might look like:
+  </p>
+
+  <ol>
+    <li>If the intrinsic dimension $D$ grows with problem size, our upper bound loosens and the theorem no longer forces the model into TC⁰. That is a gap in what our proof <em>covers</em>, not a positive claim that diffusion suddenly becomes a serial reasoner: the upper bound only says &ldquo;<em>at most</em> this much compute is needed,&rdquo; and the model's effective computation may still be much shallower. We simply cannot rule TC⁰ out in this regime.</li>
+    <li>The result assumes a TC⁰ backbone. A non&#8209;TC⁰ backbone&nbsp;&mdash; a looped transformer, say&nbsp;&mdash; doesn't fall into the theorem.</li>
+  </ol>
+
+  <p>
+    Neither is a reason to deploy diffusion on sudoku. Both are directions a future paper could take.
+  </p>
+</section>
+
+<!-- =========================================================
+     § 6 — Coda
+     ========================================================= -->
+<section class="section" id="coda">
+  <span class="section-label">§ 6 · Coda</span>
+  <h2 class="section-title">Three downstream implications.</h2>
+
+  <p>If the hypothesis is right, three things follow.</p>
+
+  <h3>Architecture.</h3>
+  <p>
+    We have been picking architectures for how well they scale on GPUs. For serial problems, that criterion optimizes for the wrong thing. We should ask which architectures can actually go <em>deeper</em>, not just wider&nbsp;&mdash; looped transformers, RNNs used thoughtfully, models whose inference time is allowed to grow with the problem.
+  </p>
+
+  <h3>Hardware.</h3>
+  <p>
+    Amdahl's law returns. If the bottleneck is the length of the longest serial chain, buying more chips does not help; latency matters. This cuts against much of the current hardware roadmap, which is overwhelmingly a throughput story.
+  </p>
+
+  <h3>Problem framing.</h3>
+  <p>
+    For any given task, asking <em>&ldquo;is this serial?&rdquo;</em> changes what you try next. Some problems we currently throw feed&#8209;forward Transformers at are serial&#8209;hard in the precise sense of §&nbsp;3, and no amount of scale is going to close the gap. Sometimes a reformulation is possible; sometimes a different architecture is needed; sometimes the honest answer is that the task needs sequential computation at inference time.
+  </p>
+</section>
+
+<!-- =========================================================
+     ACKNOWLEDGEMENTS
+     ========================================================= -->
+<section class="section" id="acknowledgements">
+  <span class="section-label">Acknowledgements</span>
+  <h2 class="section-title">Acknowledgements.</h2>
+
+  <p>
+    We thank Alexei Efros, whose critiques of deep-learning theory helped ground us and motivated us to make this paper friendlier to non-theoreticians. We are grateful to William Merrill and Anant Sahai for their invaluable technical feedback and corrections, which significantly strengthened our theoretical analysis. We also thank Angjoo Kanazawa, Justin Kerr, Amil Dravid, Yossi Gandelsman, and Yuatyong Chaichana for their thoughtful comments and suggestions that helped improve the clarity and presentation of this work.
+  </p>
+
+  <p>
+    This work is partially supported by the ONR MURI&nbsp;N00014&#8209;21&#8209;1&#8209;2801. YL was supported by a gift to the Center for Human&#8209;Compatible&nbsp;AI at Berkeley from Coefficient&nbsp;Giving (formerly Open&nbsp;Philanthropy) during the development of this work.
+  </p>
+</section>
+
+<!-- =========================================================
+     COLOPHON
+     ========================================================= -->
+<section class="colophon" id="colophon">
+  <div class="resources">
+    <a href="https://arxiv.org/abs/2507.12549" rel="noopener" target="_blank">Read&nbsp;the&nbsp;paper</a>
+    <a href="assets/serial-scaling-hypothesis-poster.pdf" rel="noopener" target="_blank">Download&nbsp;the&nbsp;poster</a>
+    <a href="#bibtex">BibTeX</a>
+  </div>
+
+  <p style="margin-bottom: var(--s-3);">
+    <strong>Authors.</strong> Yuxi Liu<sup>∗</sup>, Konpat Preechakul<sup>∗</sup>, Kananart Kuwaranancharoen<sup>†</sup>, Yutong&nbsp;Bai. <sup>∗</sup>Equal contribution. <sup>†</sup>Independent researcher. The Berkeley authors are at the Berkeley AI Research Lab.
+  </p>
+
+  <h3 style="font-size: var(--fs-small); letter-spacing: var(--tr-smcp); text-transform: uppercase; font-style: normal; font-weight: 600; margin-bottom: var(--s-1);">Selected references</h3>
+  <div class="references">
+    <p>Aggarwal &amp; Welleck (2025). <a href="https://arxiv.org/abs/2503.04697" target="_blank" rel="noopener">L1: Controlling how long a reasoning model thinks with reinforcement learning</a>. <em>arXiv</em>.</p>
+    <p>Austin, Johnson, Ho, Tarlow &amp; van den Berg (2021). <a href="https://arxiv.org/abs/2107.03006" target="_blank" rel="noopener">Structured denoising diffusion models in discrete state spaces</a>. <em>NeurIPS</em>.</p>
+    <p>Fredkin &amp; Toffoli (1982). <a href="https://doi.org/10.1007/BF01857727" target="_blank" rel="noopener">Conservative logic</a>. <em>Int. J. Theor. Phys.</em> 21(3&ndash;4), 219&ndash;253.</p>
+    <p>Greenlaw, Hoover &amp; Ruzzo (1995). <a href="https://homes.cs.washington.edu/~ruzzo/papers/limits.pdf" target="_blank" rel="noopener"><em>Limits to Parallel Computation: P-Completeness Theory.</em></a> Oxford University Press.</p>
+    <p>Hajnal, Maass, Pudlák, Szegedy &amp; Turán (1993). <a href="https://doi.org/10.1016/0022-0000(93)90001-D" target="_blank" rel="noopener">Threshold circuits of bounded depth</a>. <em>J. Computer &amp; System Sciences</em> 46(2), 129&ndash;154.</p>
+    <p>Li &amp; Yan (2024). <a href="https://arxiv.org/abs/2409.18959" target="_blank" rel="noopener">$O(d/T)$ convergence theory for diffusion probabilistic models under minimal assumptions</a>. <em>arXiv</em>.</p>
+    <p>Li, Liu, Song &amp; Jin (2024). <a href="https://arxiv.org/abs/2402.12875" target="_blank" rel="noopener">Chain of thought empowers transformers to solve inherently serial problems</a>. <em>ICLR</em>.</p>
+    <p>Merrill &amp; Sabharwal (2024). <a href="https://arxiv.org/abs/2310.07923" target="_blank" rel="noopener">The expressive power of transformers with chain of thought</a>. <em>ICLR</em>.</p>
+    <p>Nichol &amp; Dhariwal (2021). <a href="https://arxiv.org/abs/2102.09672" target="_blank" rel="noopener">Improved denoising diffusion probabilistic models</a>. <em>ICML</em>.</p>
+    <p>Ravishankar, Patel, Rajasegaran &amp; Malik (2024). <a href="https://arxiv.org/abs/2411.08034" target="_blank" rel="noopener">Scaling properties of diffusion models for perceptual tasks</a>. <em>CVPR&nbsp;2025</em>.</p>
+    <p>Salimans &amp; Ho (2022). <a href="https://arxiv.org/abs/2202.00512" target="_blank" rel="noopener">Progressive distillation for fast sampling of diffusion models</a>. <em>ICLR</em>.</p>
+    <p>Silver et&nbsp;al. (2016). <a href="https://doi.org/10.1038/nature16961" target="_blank" rel="noopener">Mastering the game of Go with deep neural networks and tree search</a>. <em>Nature</em> 529, 484&ndash;489.</p>
+    <p>Wang, Javali, Bortkiewicz, Trzciński &amp; Eysenbach (2025). <a href="https://arxiv.org/abs/2503.14858" target="_blank" rel="noopener">1000 layer networks for self&#8209;supervised RL: scaling depth can enable new goal-reaching capabilities</a>. <em>NeurIPS</em>.</p>
+    <p>Wei, Wang, Schuurmans, Bosma, Chi, Le &amp; Zhou (2022). <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Chain&#8209;of&#8209;thought prompting elicits reasoning in large language models</a>. <em>NeurIPS</em>.</p>
+    <p>Wewer, Pogodzinski, Schiele &amp; Lenssen (2025). <a href="https://arxiv.org/abs/2502.21075" target="_blank" rel="noopener">Spatial reasoning with denoising models</a>. <em>ICML</em>.</p>
+    <p>Wolfram (2002). <a href="https://www.wolframscience.com/nks/" target="_blank" rel="noopener"><em>A New Kind of Science.</em></a> Wolfram Media.</p>
+    <p>Woods &amp; Neary (2009). <a href="https://arxiv.org/abs/cs/0612089" target="_blank" rel="noopener">On the time complexity of 2&#8209;tag systems and small universal Turing machines</a>. <em>FOCS</em>.</p>
+    <p>Yin, Gharbi, Zhang, Shechtman, Durand, Freeman &amp; Park (2024). <a href="https://arxiv.org/abs/2405.14867" target="_blank" rel="noopener">Improved distribution matching distillation for fast image synthesis</a>. <em>NeurIPS</em>.</p>
+  </div>
+
+  <h3 style="font-size: var(--fs-small); letter-spacing: var(--tr-smcp); text-transform: uppercase; font-style: normal; font-weight: 600; margin-top: var(--s-4); margin-bottom: var(--s-1);" id="bibtex">BibTeX</h3>
+  <pre class="bibtex">@article{liu2025serial,
+  title   = {The Serial Scaling Hypothesis},
+  author  = {Liu, Yuxi and Preechakul, Konpat and
+             Kuwaranancharoen, Kananart and Bai, Yutong},
+  journal = {arXiv preprint arXiv:2507.12549},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2507.12549}
+}</pre>
+
+  <p style="margin-top: var(--s-4); font-size: var(--fs-micro); letter-spacing: var(--tr-smcp); text-transform: uppercase; color: var(--ink-faint);">
+    Site typeset in Fraunces. Last updated April&nbsp;2026.
+  </p>
+</section>
+
+</article>
+
+</body>
+</html>

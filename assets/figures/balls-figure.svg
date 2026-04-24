@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 820" font-family="Georgia, 'Times New Roman', serif">
+  <!-- White background -->
+  <rect width="1000" height="820" fill="white"/>
+
+  <!-- ===== Left label: "1 ball" ===== -->
+  <text x="150" y="290" font-size="36" fill="black" text-anchor="middle">1 ball</text>
+
+  <!-- ===== Right label: "5 balls" ===== -->
+  <text x="850" y="290" font-size="36" fill="black" text-anchor="middle">5 balls</text>
+
+  <!-- ==================================================== -->
+  <!-- TOP-LEFT: single red ball, no trace                  -->
+  <!-- ==================================================== -->
+  <g>
+    <rect x="250" y="80" width="260" height="260" fill="white" stroke="black" stroke-width="3"/>
+    <circle cx="360" cy="190" r="16" fill="red"/>
+  </g>
+
+  <!-- ==================================================== -->
+  <!-- TOP-RIGHT: five balls, no traces                     -->
+  <!-- ==================================================== -->
+  <g>
+    <rect x="590" y="80" width="260" height="260" fill="white" stroke="black" stroke-width="3"/>
+    <!-- blue -->
+    <circle cx="665" cy="120" r="16" fill="blue"/>
+    <!-- red -->
+    <circle cx="680" cy="160" r="16" fill="red"/>
+    <!-- cyan -->
+    <circle cx="810" cy="160" r="16" fill="cyan"/>
+    <!-- yellow -->
+    <circle cx="760" cy="280" r="16" fill="yellow"/>
+    <!-- green -->
+    <circle cx="820" cy="300" r="16" fill="green"/>
+  </g>
+
+  <!-- ==================================================== -->
+  <!-- BOTTOM-LEFT: red ball with trace                     -->
+  <!-- ==================================================== -->
+  <g>
+    <rect x="250" y="360" width="260" height="260" fill="white" stroke="black" stroke-width="3"/>
+    <!-- Fading zigzag / diamond-like trace, newer segments darker -->
+    <!-- We draw several segments, each slightly more transparent the further back in time -->
+    <polyline points="470,380 440,420 490,520" fill="none" stroke="red" stroke-width="3" stroke-opacity="0.18"/>
+    <polyline points="490,520 440,420 470,380" fill="none" stroke="red" stroke-width="3" stroke-opacity="0.28"/>
+    <polyline points="470,380 490,520" fill="none" stroke="red" stroke-width="3" stroke-opacity="0.35"/>
+    <polyline points="490,520 390,420" fill="none" stroke="red" stroke-width="3" stroke-opacity="0.55"/>
+    <polyline points="390,420 430,570" fill="none" stroke="red" stroke-width="3" stroke-opacity="0.75"/>
+    <polyline points="430,570 310,480" fill="none" stroke="red" stroke-width="3.5" stroke-opacity="0.95"/>
+    <!-- current ball position -->
+    <circle cx="310" cy="480" r="16" fill="red"/>
+  </g>
+
+  <!-- ==================================================== -->
+  <!-- BOTTOM-RIGHT: five balls with traces                 -->
+  <!-- ==================================================== -->
+  <g>
+    <rect x="590" y="360" width="260" height="260" fill="white" stroke="black" stroke-width="3"/>
+
+    <!-- Blue ball trace (angular rectangle-ish loop) -->
+    <polyline points="645,405 630,450 680,470 695,420 645,405"
+              fill="none" stroke="blue" stroke-width="2.5" stroke-opacity="0.35"/>
+    <polyline points="645,405 665,400"
+              fill="none" stroke="blue" stroke-width="3" stroke-opacity="0.9"/>
+
+    <!-- Cyan ball trace (long wavy sweep) -->
+    <path d="M 610,560 Q 650,540 690,555 T 770,520 T 820,480 L 810,440"
+          fill="none" stroke="cyan" stroke-width="2.5" stroke-opacity="0.5"/>
+    <path d="M 810,440 L 810,440"
+          fill="none" stroke="cyan" stroke-width="3" stroke-opacity="1"/>
+
+    <!-- Yellow ball trace (zigzag down to current) -->
+    <polyline points="700,400 680,450 740,480 700,520 760,560"
+              fill="none" stroke="gold" stroke-width="2.5" stroke-opacity="0.55"/>
+
+    <!-- Green ball trace (wavy path up from below) -->
+    <path d="M 610,600 Q 660,570 710,600 T 800,580"
+          fill="none" stroke="green" stroke-width="2.5" stroke-opacity="0.55"/>
+
+    <!-- Red ball trace (angular crossing path) -->
+    <polyline points="780,430 700,510 660,460 680,440"
+              fill="none" stroke="red" stroke-width="2.5" stroke-opacity="0.55"/>
+
+    <!-- Current ball positions (same layout as top-right) -->
+    <circle cx="665" cy="400" r="16" fill="blue"/>
+    <circle cx="680" cy="440" r="16" fill="red"/>
+    <circle cx="810" cy="440" r="16" fill="cyan"/>
+    <circle cx="760" cy="560" r="16" fill="yellow"/>
+    <circle cx="820" cy="580" r="16" fill="green"/>
+  </g>
+
+  <!-- ===== Bottom labels ===== -->
+  <text x="500" y="710" font-size="42" fill="black" text-anchor="middle">New</text>
+  <text x="500" y="750" font-size="22" fill="black" text-anchor="middle" font-style="italic">with illustrative traces</text>
+</svg>
