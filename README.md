@@ -3,7 +3,7 @@
 A blog-post-style companion to *The Serial Scaling Hypothesis* by
 Liu, Preechakul, Kuwaranancharoen, and Bai ([arXiv:2507.12549](https://arxiv.org/abs/2507.12549)).
 
-**Live site:** https://phizaz.github.io/serial-scaling-hypothesis/
+**Live site:** https://serial-scaling-hypothesis.github.io/
 
 ## Structure
 
